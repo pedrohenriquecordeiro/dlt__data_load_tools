@@ -21,7 +21,7 @@ load_dotenv()
 MYSQL_HOST = "app-legacy-cluster.cluster-ro-chyk4qig2xat.us-east-1.rds.amazonaws.com"
 MYSQL_PORT = 3306
 
-os.environ["DESTINATION__FILESYSTEM__BUCKET_URL"] = "gs://corp-data-lakehouse/databases/app-legacy-cluster/corp"
+os.environ["DESTINATION__FILESYSTEM__BUCKET_URL"] = "gs://onfly-data-lakehouse/databases/app-legacy-cluster/onfly"
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "sa-data-engineering-processes.json"
 
 # Recommended performance tweak: file max size in bytes (e.g., 50MB)
@@ -34,7 +34,7 @@ conn_str = (
     f"mysql+pymysql://"
     f"{os.environ['MYSQL_DB_USER']}:"
     f"{os.environ['MYSQL_DB_PASSWORD']}"
-    f"@{MYSQL_HOST}:{MYSQL_PORT}/corp"
+    f"@{MYSQL_HOST}:{MYSQL_PORT}/onfly"
 )
 credentials = ConnectionStringCredentials(conn_str)
 
@@ -61,8 +61,35 @@ source.payment_invoice.apply_hints(
     )
 )
 
+# Cast columns of the source table
+source.payment_invoice.apply_hints(
+    columns = {
+        "id"                   : {"data_type":"text"},
+        "company_id"           : {"data_type":"text"}, 
+        "amount"               : {"data_type":"text"}, 
+        "status"               : {"data_type":"text"}, 
+        "description"          : {"data_type":"text"}, 
+        "created_at"           : {"data_type":"text"}, 
+        "updated_at"           : {"data_type":"text"}, 
+        "payment_id"           : {"data_type":"text"}, 
+        "link"                 : {"data_type":"text"}, 
+        "due_date"             : {"data_type":"text"}, 
+        "type"                 : {"data_type":"text"}, 
+        "os"                   : {"data_type":"text"}, 
+        "process"              : {"data_type":"text"}, 
+        "cost_center_id"       : {"data_type":"text"}, 
+        "tag_id"               : {"data_type":"text"}, 
+        "deleted_at"           : {"data_type":"text"}, 
+        "barcode"              : {"data_type":"text"}, 
+        "barcode_typable_line" : {"data_type":"text"}, 
+        "nfs_number"           : {"data_type":"text"}, 
+        "unified_with"         : {"data_type":"text"}, 
+        "email_sent_at"        : {"data_type":"text"}
+    }
+)
+
 # ------------------------------------------------------------------------------
-# 6. Run Pipeline with Error Handling and Logging
+# 6. Run Pipeline
 # ------------------------------------------------------------------------------
 try:
     info = pipeline.run(
