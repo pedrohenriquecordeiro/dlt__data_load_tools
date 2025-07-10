@@ -1,45 +1,80 @@
-import os
+import os , logging , traceback
 import dlt
 from dlt.sources.credentials import ConnectionStringCredentials
 from dlt.sources.sql_database import sql_database
 from dotenv import load_dotenv
 
-# 1. Load environment variables from .env file
+# ------------------------------------------------------------------------------
+# 1. Logging Configuration
+# ------------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler()]
+)
+
+# ------------------------------------------------------------------------------
+# 2. Load environment variables
+# ------------------------------------------------------------------------------
 load_dotenv()
 
-MYSQL_HOST = "legacy-cluster.cluster-ro-chyk4qig2xat.us-east-1.rds.amazonaws.com"
+MYSQL_HOST = "app-legacy-cluster.cluster-ro-chyk4qig2xat.us-east-1.rds.amazonaws.com"
 MYSQL_PORT = 3306
 
-os.environ["DESTINATION__FILESYSTEM__BUCKET_URL"] = "gs://corp-storage-tables/tables/app-legacy-cluster/corp"
+os.environ["DESTINATION__FILESYSTEM__BUCKET_URL"] = "gs://onfly-data-lakehouse/databases/app-legacy-cluster/onfly"
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "sa-data-engineering-processes.json"
 
-# Create a connection string for MySQL
+# Recommended performance tweak: file max size in bytes (e.g., 50MB)
+os.environ["LOADER__FILESYSTEM__CONFIG__LOADER_FILE_MAX_SIZE"] = str(50 * 1024 * 1024) # 50 MB
+
+# ------------------------------------------------------------------------------
+# 3. MySQL Connection Setup
+# ------------------------------------------------------------------------------
 conn_str = (
     f"mysql+pymysql://"
     f"{os.environ['MYSQL_DB_USER']}:"
     f"{os.environ['MYSQL_DB_PASSWORD']}"
-    f"@{MYSQL_HOST}:{MYSQL_PORT}/corp"
+    f"@{MYSQL_HOST}:{MYSQL_PORT}/onfly"
 )
 credentials = ConnectionStringCredentials(conn_str)
 
-# 2. Create a DLT pipeline for GCS
+# ------------------------------------------------------------------------------
+# 4. DLT Pipeline Configuration
+# ------------------------------------------------------------------------------
 pipeline = dlt.pipeline(
-    pipeline_name = "mysql_to_gcs",   # pipeline name (used for metadata, logging, etc.)
-    destination   = "filesystem",     # destination type,
-    dataset_name = "payment_invoice", # dataset name (used for table names, etc.),
-    full_refresh  = False,            # set to True to reprocess all data
+    pipeline_name = "mysql_to_gcs",    # pipeline name (used for metadata, logging, etc.)
+    destination   = "filesystem",      # destination type
+    dataset_name  = "payment_invoice"  # dataset name (used for table names, etc.)
 )
 
-# 3. Define the data source: load only payment_invoice
-source = sql_database(credentials).with_resources("payment_invoice")
-# Apply incremental hint on the 'updated_at' column so only new/changed rows are fetched
-source.payment_invoice.apply_hints(incremental = dlt.sources.incremental("updated_at"))
-
-# 4. Run the pipeline with 'merge' (upsert) write disposition:
-info = pipeline.run(
-    source, 
-    write_disposition = {"disposition": "merge", "strategy": "upsert"},
-    table_format      = "delta",
-    primary_key       = ["id"]
+# ------------------------------------------------------------------------------
+# 5. Source Definition (chunked + incremental)
+# ------------------------------------------------------------------------------
+source = (
+    sql_database(credentials , chunk_size = 10000)
+    .with_resources("payment_invoice")
 )
-print(info)  # optional: shows number of rows processed, etc.
+source.payment_invoice.apply_hints(
+    incremental = dlt.sources.incremental(
+        cursor_path   = "updated_at",
+        initial_value = None       # You can set an initial timestamp here if needed
+    )
+)
+
+# ------------------------------------------------------------------------------
+# 6. Run Pipeline with Error Handling and Logging
+# ------------------------------------------------------------------------------
+try:
+    info = pipeline.run(
+        source, 
+        write_disposition = {"disposition": "merge", "strategy": "upsert"},
+        table_format      = "delta",
+        primary_key       = ["id"]
+    )
+
+    logging.info(info)
+
+except Exception as e:
+    logging.error("An unexpected error occurred during pipeline execution.")
+    logging.error(str(e))
+    traceback.print_exc()
