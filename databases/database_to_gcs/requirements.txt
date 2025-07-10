@@ -1,0 +1,6 @@
+dlt
+pymysql
+dlt[sqlalchemy]
+python-dotenv==1.1.1
+dlt[deltalake]
+pyarrow>=17.0.0
