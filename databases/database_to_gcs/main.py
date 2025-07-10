@@ -21,7 +21,7 @@ load_dotenv()
 MYSQL_HOST = "app-legacy-cluster.cluster-ro-chyk4qig2xat.us-east-1.rds.amazonaws.com"
 MYSQL_PORT = 3306
 
-os.environ["DESTINATION__FILESYSTEM__BUCKET_URL"] = "gs://onfly-data-lakehouse/databases/app-legacy-cluster/onfly"
+os.environ["DESTINATION__FILESYSTEM__BUCKET_URL"] = "gs://corp-data-lakehouse/databases/app-legacy-cluster/corp"
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "sa-data-engineering-processes.json"
 
 # Recommended performance tweak: file max size in bytes (e.g., 50MB)
@@ -34,7 +34,7 @@ conn_str = (
     f"mysql+pymysql://"
     f"{os.environ['MYSQL_DB_USER']}:"
     f"{os.environ['MYSQL_DB_PASSWORD']}"
-    f"@{MYSQL_HOST}:{MYSQL_PORT}/onfly"
+    f"@{MYSQL_HOST}:{MYSQL_PORT}/corp"
 )
 credentials = ConnectionStringCredentials(conn_str)
 
