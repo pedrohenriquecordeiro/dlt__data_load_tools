@@ -1,0 +1,6 @@
+dlt
+pymysql
+dlt[bigquery]
+dlt[sqlalchemy]
+python-dotenv==1.1.1
+google-cloud-bigquery-storage
