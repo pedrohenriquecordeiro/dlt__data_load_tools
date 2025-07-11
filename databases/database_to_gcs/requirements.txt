@@ -1,6 +1,8 @@
-dlt
-pymysql
-dlt[sqlalchemy]
-python-dotenv==1.1.1
+dlt==1.13.0
 dlt[deltalake]
+dlt[sqlalchemy]
+dlt[filesystem]
+dlt[gs]
+pymysql==1.1.1
+python-dotenv==1.1.1
 pyarrow>=17.0.0
