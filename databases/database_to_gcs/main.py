@@ -2,7 +2,8 @@ import os , logging , traceback
 import dlt
 from dlt.sources.credentials import ConnectionStringCredentials
 from dlt.sources.sql_database import sql_database
-from dotenv import load_dotenv
+from datetime import datetime
+import pytz
 
 # ------------------------------------------------------------------------------
 # 1. Logging Configuration
@@ -16,13 +17,18 @@ logging.basicConfig(
 # ------------------------------------------------------------------------------
 # 2. Load environment variables
 # ------------------------------------------------------------------------------
-load_dotenv()
 
-MYSQL_HOST = "app-legacy-cluster.cluster-ro-chyk4qig2xat.us-east-1.rds.amazonaws.com"
+# TO TEST: Uncomment the next two lines to load environment variables from a .env file
+# from dotenv import load_dotenv
+# load_dotenv()
+# os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "sa-data-engineering-processes.json"
+
+MYSQL_DB_USER = "user-reader-app-legacy-cluster"
+MYSQL_HOST = "app-legacy-cluster.cluster-ro-wrd12s8fk9.us-east-1.rds.amazonaws.com"
 MYSQL_PORT = 3306
 
+# Set destination bucket URL for GCS
 os.environ["DESTINATION__FILESYSTEM__BUCKET_URL"] = "gs://onfly-data-lakehouse/databases/app-legacy-cluster/onfly"
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "sa-data-engineering-processes.json"
 
 # Recommended performance tweak: file max size in bytes (e.g., 50MB)
 os.environ["LOADER__FILESYSTEM__CONFIG__LOADER_FILE_MAX_SIZE"] = str(50 * 1024 * 1024) # 50 MB
@@ -32,7 +38,7 @@ os.environ["LOADER__FILESYSTEM__CONFIG__LOADER_FILE_MAX_SIZE"] = str(50 * 1024 *
 # ------------------------------------------------------------------------------
 conn_str = (
     f"mysql+pymysql://"
-    f"{os.environ['MYSQL_DB_USER']}:"
+    f"{MYSQL_DB_USER}:"
     f"{os.environ['MYSQL_DB_PASSWORD']}"
     f"@{MYSQL_HOST}:{MYSQL_PORT}/onfly"
 )
@@ -61,6 +67,16 @@ source.payment_invoice.apply_hints(
     )
 )
 
+# ------------------------------------------------------------------------------
+# 5. Source Definition (chunked + incremental) with  some transformations
+# ------------------------------------------------------------------------------
+
+
+# Add a new column 'inserted_at' with the current timestamp in Sao Paulo timezone
+source.payment_invoice.add_map(
+    lambda row: {**row, "inserted_at": datetime.now(pytz.timezone('America/Sao_Paulo'))}
+)
+
 # Cast columns of the source table
 source.payment_invoice.apply_hints(
     columns = {
@@ -69,22 +85,23 @@ source.payment_invoice.apply_hints(
         "amount"               : {"data_type":"text"}, 
         "status"               : {"data_type":"text"}, 
         "description"          : {"data_type":"text"}, 
-        "created_at"           : {"data_type":"text"}, 
-        "updated_at"           : {"data_type":"text"}, 
+        "created_at"           : {"data_type":"timestamp"}, 
+        "updated_at"           : {"data_type":"timestamp"}, 
         "payment_id"           : {"data_type":"text"}, 
         "link"                 : {"data_type":"text"}, 
-        "due_date"             : {"data_type":"text"}, 
+        "due_date"             : {"data_type":"timestamp"}, 
         "type"                 : {"data_type":"text"}, 
         "os"                   : {"data_type":"text"}, 
         "process"              : {"data_type":"text"}, 
         "cost_center_id"       : {"data_type":"text"}, 
         "tag_id"               : {"data_type":"text"}, 
-        "deleted_at"           : {"data_type":"text"}, 
+        "deleted_at"           : {"data_type":"timestamp"}, 
         "barcode"              : {"data_type":"text"}, 
         "barcode_typable_line" : {"data_type":"text"}, 
         "nfs_number"           : {"data_type":"text"}, 
         "unified_with"         : {"data_type":"text"}, 
-        "email_sent_at"        : {"data_type":"text"}
+        "email_sent_at"        : {"data_type":"timestamp"},
+        "inserted_at"          : {"data_type":"timestamp"}
     }
 )
 
