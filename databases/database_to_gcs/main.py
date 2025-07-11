@@ -28,7 +28,7 @@ MYSQL_HOST = "app-legacy-cluster.cluster-ro-wrd12s8fk9.us-east-1.rds.amazonaws.c
 MYSQL_PORT = 3306
 
 # Set destination bucket URL for GCS
-os.environ["DESTINATION__FILESYSTEM__BUCKET_URL"] = "gs://onfly-data-lakehouse/databases/app-legacy-cluster/onfly"
+os.environ["DESTINATION__FILESYSTEM__BUCKET_URL"] = "gs://corp-data-lakehouse/databases/app-legacy-cluster/corp"
 
 # Recommended performance tweak: file max size in bytes (e.g., 50MB)
 os.environ["LOADER__FILESYSTEM__CONFIG__LOADER_FILE_MAX_SIZE"] = str(50 * 1024 * 1024) # 50 MB
@@ -40,7 +40,7 @@ conn_str = (
     f"mysql+pymysql://"
     f"{MYSQL_DB_USER}:"
     f"{os.environ['MYSQL_DB_PASSWORD']}"
-    f"@{MYSQL_HOST}:{MYSQL_PORT}/onfly"
+    f"@{MYSQL_HOST}:{MYSQL_PORT}/corp"
 )
 credentials = ConnectionStringCredentials(conn_str)
 
