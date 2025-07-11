@@ -68,7 +68,7 @@ source.payment_invoice.apply_hints(
 )
 
 # ------------------------------------------------------------------------------
-# 5. Source Definition (chunked + incremental) with  some transformations
+# 6. Transformations
 # ------------------------------------------------------------------------------
 
 
@@ -106,7 +106,7 @@ source.payment_invoice.apply_hints(
 )
 
 # ------------------------------------------------------------------------------
-# 6. Run Pipeline
+# 7. Run Pipeline
 # ------------------------------------------------------------------------------
 try:
     info = pipeline.run(
